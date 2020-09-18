@@ -1,0 +1,99 @@
+---
+title: "assignment1"
+author: "Ketan P Pise"
+date: "18 September 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Reproducibal Research Assignment
+### Introduction 
+In this assignment we will use data from personal activity monitoring device.
+
+##Importing file and necessary library
+1.Importing necessary library as well as importing data is first task of any application.
+
+```{r import, echo=TRUE}
+df <- read.table("activity.csv", sep = ',', header = TRUE, colClasses = c("numeric", "Date", "integer"))
+head(df)
+```
+
+##2. constructing plot using histogram
+
+```{r }
+library(dplyr)
+library(ggplot2)
+data <- df %>% filter(!is.na(steps)) %>% group_by(date) %>% summarize(steps = sum(steps)) %>% print
+```
+
+## plot
+```{r plot}
+library(ggplot2)
+g <- ggplot(data, aes(x = steps))
+g + geom_histogram(binwidth = 1000) + labs(title = 'Histogram of Steps per day', x = 'Steps per Day', y = 'Frequency')
+```
+
+## 3.Calculating mean and median
+Mean and median number of steps taken each day
+```{r mean&median}
+mean_data <- mean(data$steps, na.rm = TRUE)
+median_da <- median(data$steps, na.rm = TRUE)
+mean_data
+```
+
+```{r}
+median_da
+```
+
+## 4.Time series plot of the average number of steps taken
+```{r interval.data}
+time_series <- df %>% filter(!is.na(steps)) %>% group_by(interval) %>% summarize(steps = mean(steps)) %>% print
+```
+plot
+```{r}
+plot(time_series$interval, time_series$steps, type = 'l', xlab = 'Interval', ylab = 'steps taken')
+```
+
+## 5. The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+time_series[which.max(time_series$steps), ]
+```
+
+
+## 6.Code to describe and show a strategy for imputing missing data
+Taking mean of steps data and exchanging mean to all NA data
+```{r}
+data_full <- df
+nas <- is.na(data_full$steps)
+avg_interval <- tapply(data_full$steps, data_full$interval, mean, na.rm=TRUE, simplify=TRUE)
+data_full$steps[nas] <- avg_interval[as.character(data_full$interval[nas])]
+head(data_full)
+```
+
+## 7.Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+data_step <- data_full %>% group_by(date) %>% summarize(steps = sum(steps)) %>% print
+g <- ggplot(data_step, aes(steps))
+g + geom_histogram(binwidth = 1000) + xlab('steps taken')
+```
+
+## 8.Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+Staterging on all weekdays and weekend days as 6 days weekdays later weekend days
+```{r}
+data_full$dayType<- ifelse(as.POSIXlt(data_full$date)$wday %in% c(0,6), "weekends","weekdays")
+head(data_full)
+```
+
+## 8.1 plot
+```{r}
+aggre_Data<- aggregate(steps ~ interval + dayType, data=data_full, mean)
+ggplot(aggre_Data, aes(color = dayType, interval, steps)) + 
+    geom_line() +
+    facet_grid(dayType ~ .) +
+    xlab("5-Minute Interval") + 
+    ylab("steps taken")
+```
